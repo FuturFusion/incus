@@ -1,9 +1,11 @@
 package drivers
 
 import (
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -167,7 +169,45 @@ func Qcow2Commit(path string) error {
 	return nil
 }
 
-// Qcow2Info returns information about a qcow2 image.
+// Qcow2IsStandalone reports whether a qcow2 file refers to no external file. It parses the header
+// itself rather than trusting qemu-img, which would already open an external data file.
+func Qcow2IsStandalone(path string) (bool, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return false, err
+	}
+
+	defer func() { _ = f.Close() }()
+
+	// Read the fixed part of the qcow2 v3 header.
+	hdr := make([]byte, 80)
+	_, err = io.ReadFull(f, hdr)
+	if err != nil {
+		return false, err
+	}
+
+	if string(hdr[0:4]) != "QFI\xfb" {
+		return false, fmt.Errorf("Not a qcow2 image: %q", path)
+	}
+
+	// A non-zero backing file offset means the image has a backing file.
+	if binary.BigEndian.Uint64(hdr[8:16]) != 0 {
+		return false, nil
+	}
+
+	// From version 3, incompatible feature bit 2 marks an external data file.
+	version := binary.BigEndian.Uint32(hdr[4:8])
+	if version >= 3 {
+		incompatibleFeatures := binary.BigEndian.Uint64(hdr[72:80])
+		if incompatibleFeatures&(1<<2) != 0 {
+			return false, nil
+		}
+	}
+
+	return true, nil
+}
+
+// Qcow2Info returns information about a qcow2 image, or a raw one if the path isn't a qcow2 file.
 func Qcow2Info(path string) (*ImageInfo, error) {
 	imgJSON, err := subprocess.RunCommand("qemu-img", "info", "-U", "--output=json", path)
 	if err != nil {
