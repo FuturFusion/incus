@@ -3044,7 +3044,7 @@ func createStoragePoolVolumeFromBackup(s *state.State, r *http.Request, requestP
 
 	backupFile = tarFile
 
-	bInfo, err := parseVolumeBackupInfo(r.Context(), s, backupFile, projectName, pool, volName)
+	bInfo, err := parseVolumeBackupInfo(r.Context(), s, backupFile, projectName, pool, volName, budget)
 	if err != nil {
 		return response.SmartError(err)
 	}
@@ -3117,7 +3117,7 @@ func convertSquashfsBackup(backupFile *os.File, budget int64) (*os.File, error) 
 	return tarFile, nil
 }
 
-func parseVolumeBackupInfo(ctx context.Context, s *state.State, backupFile *os.File, projectName string, pool string, volName string) (*backup.Info, error) {
+func parseVolumeBackupInfo(ctx context.Context, s *state.State, backupFile *os.File, projectName string, pool string, volName string, budget int64) (*backup.Info, error) {
 	// Parse the backup information.
 	_, err := backupFile.Seek(0, io.SeekStart)
 	if err != nil {
@@ -3125,7 +3125,7 @@ func parseVolumeBackupInfo(ctx context.Context, s *state.State, backupFile *os.F
 	}
 
 	logger.Debug("Reading backup file info")
-	bInfo, err := backup.GetInfo(backupFile, s.OS, backupFile.Name())
+	bInfo, err := backup.GetInfo(backupFile, s.OS, backupFile.Name(), budget)
 	if err != nil {
 		return nil, api.StatusErrorf(http.StatusBadRequest, "%s", err.Error())
 	}
