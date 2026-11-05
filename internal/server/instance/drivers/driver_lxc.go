@@ -4238,7 +4238,7 @@ func (d *lxc) Render() (any, any, error) {
 
 	instState.Description = d.description
 	instState.Architecture = architectureName
-	instState.Config = d.localConfig
+	instState.Config = maps.Clone(d.localConfig)
 	instState.CreatedAt = d.creationDate
 	instState.Devices = d.localDevices.CloneNative()
 	instState.Ephemeral = d.ephemeral
