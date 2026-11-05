@@ -117,6 +117,9 @@ const qemuBlockDevIDPrefix = "incus_"
 // qemuDiskMaxWriteZeroes caps guest write-zeroes requests so the I/O limits get to pace them.
 const qemuDiskMaxWriteZeroes = 64 * 1024 * 1024
 
+// qemuAgentMaxResponseSize bounds the replies read from the agent, which the guest controls.
+const qemuAgentMaxResponseSize = 16 * 1024 * 1024
+
 // qemuMountTagMaxLength defines the maximum number of characters allowed for the mount tag added to the QEMU configuration.
 const qemuMountTagMaxLength = 30
 
@@ -3177,8 +3180,9 @@ func (d *qemu) advertiseVsockAddress() error {
 	}
 
 	agentArgs := &incus.ConnectionArgs{
-		SkipGetEvents: true,
-		SkipGetServer: true,
+		SkipGetEvents:   true,
+		SkipGetServer:   true,
+		MaxResponseSize: qemuAgentMaxResponseSize,
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -11941,7 +11945,7 @@ func (d *qemu) Exec(req api.InstanceExecPost, stdin *os.File, stdout *os.File, s
 		return nil, err
 	}
 
-	agent, err := incus.ConnectIncusHTTP(nil, client)
+	agent, err := incus.ConnectIncusHTTP(&incus.ConnectionArgs{MaxResponseSize: qemuAgentMaxResponseSize}, client)
 	if err != nil {
 		d.logger.Error("Failed to connect to the agent", logger.Ctx{"err": err})
 		return nil, errors.New("Failed to connect to the agent")
@@ -12407,7 +12411,7 @@ func (d *qemu) agentGetState() (*api.InstanceState, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	agent, err := incus.ConnectIncusHTTPWithContext(ctx, nil, client)
+	agent, err := incus.ConnectIncusHTTPWithContext(ctx, &incus.ConnectionArgs{MaxResponseSize: qemuAgentMaxResponseSize}, client)
 	if err != nil {
 		return nil, fmt.Errorf("Failed connecting to agent: %w", err)
 	}
@@ -12866,8 +12870,9 @@ func (d *qemu) devIncusEventSend(eventType string, eventMessage map[string]any) 
 	}
 
 	agentArgs := &incus.ConnectionArgs{
-		SkipGetEvents: true,
-		SkipGetServer: true,
+		SkipGetEvents:   true,
+		SkipGetServer:   true,
+		MaxResponseSize: qemuAgentMaxResponseSize,
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -13274,8 +13279,9 @@ func (d *qemu) getAgentMetrics() (*metrics.MetricSet, error) {
 	}
 
 	agentArgs := &incus.ConnectionArgs{
-		SkipGetEvents: true,
-		SkipGetServer: true,
+		SkipGetEvents:   true,
+		SkipGetServer:   true,
+		MaxResponseSize: qemuAgentMaxResponseSize,
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
