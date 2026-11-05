@@ -1558,7 +1558,7 @@ var ConfigDeviceVolatileKeys = map[string]func(value string) error{
 	// ---
 	//  type: string
 	//  shortdesc: Network device MAC address
-	"hwaddr": validate.IsAny,
+	"hwaddr": validate.Optional(validate.IsHardwareAddress),
 
 	// gendoc:generate(entity=instance, group=volatile, key=volatile.<name>.io.bus)
 	// The IO bus stores the actual IO bus being used, checked in case `io.bus=auto`.
@@ -1600,7 +1600,7 @@ var ConfigDeviceVolatileKeys = map[string]func(value string) error{
 	// ---
 	//  type: string
 	//  shortdesc: Network device original MAC
-	"last_state.hwaddr": validate.IsAny,
+	"last_state.hwaddr": validate.Optional(validate.IsHardwareAddress),
 
 	// gendoc:generate(entity=instance, group=volatile, key=volatile.<name>.last_state.ip_addresses)
 	// Comma-separated list of the last used IP addresses of the network device.
@@ -1670,7 +1670,7 @@ var ConfigDeviceVolatileKeys = map[string]func(value string) error{
 	// ---
 	//  type: string
 	//  shortdesc: SR-IOV virtual function original MAC
-	"last_state.vf.hwaddr": validate.IsAny,
+	"last_state.vf.hwaddr": validate.Optional(validate.IsHardwareAddress),
 
 	// gendoc:generate(entity=instance, group=volatile, key=volatile.<name>.last_state.vf.id)
 	// The ID used when moving a VF into an instance.
