@@ -318,8 +318,8 @@ func UsedBy(s *state.State, aclProjectName string, usageFunc func(ctx context.Co
 func isInUseByDevice(d deviceConfig.Device, matchACLNames ...string) []string {
 	matchedACLNames := []string{}
 
-	// Only NICs linked to managed networks can use network ACLs.
-	if d["type"] != "nic" || d["network"] == "" {
+	// Only NICs linked to managed networks and bridged NICs can use network ACLs.
+	if d["type"] != "nic" || (d["network"] == "" && d["nictype"] != "bridged") {
 		return matchedACLNames
 	}
 
@@ -351,6 +351,11 @@ func NetworkUsage(s *state.State, aclProjectName string, aclNames []string, aclN
 	err := UsedBy(s, aclProjectName, func(ctx context.Context, tx *db.ClusterTx, matchedACLNames []string, usageType any, devName string, nicConfig map[string]string) error {
 		switch u := usageType.(type) {
 		case cluster.Profile:
+			// Bridged NICs that aren't linked to a managed network are tracked through the instances using the profile.
+			if nicConfig["network"] == "" {
+				return nil
+			}
+
 			networkID, network, _, err := tx.GetNetworkInAnyState(ctx, aclProjectName, nicConfig["network"])
 			if err != nil {
 				return fmt.Errorf("Failed to load network %q: %w", nicConfig["network"], err)
@@ -369,6 +374,24 @@ func NetworkUsage(s *state.State, aclProjectName string, aclNames []string, aclN
 			}
 
 		case db.InstanceArgs:
+			// Bridged NICs that aren't linked to a managed network have no network record, record the NIC usage only.
+			if nicConfig["network"] == "" {
+				key := fmt.Sprintf("%s/%s/%s/%s", nicConfig["parent"], u.Project, u.Name, devName)
+
+				_, found := aclNets[key]
+				if !found {
+					aclNets[key] = NetworkACLUsage{
+						Name:            nicConfig["parent"],
+						Type:            "bridge",
+						InstanceProject: u.Project,
+						InstanceName:    u.Name,
+						DeviceName:      devName,
+					}
+				}
+
+				return nil
+			}
+
 			networkID, network, _, err := tx.GetNetworkInAnyState(ctx, aclProjectName, nicConfig["network"])
 			if err != nil {
 				return fmt.Errorf("Failed to load network %q: %w", nicConfig["network"], err)
