@@ -1566,7 +1566,7 @@ func storagePoolVolumePost(d *Daemon, r *http.Request) response.Response {
 		}
 
 		run := func(op *operations.Operation) error {
-			return migrateStorageVolume(s, r, volumeName, srcPoolName, targetMemberInfo.Name, targetProjectName, req, op)
+			return migrateStorageVolume(s, r, volumeName, srcPoolName, targetMemberInfo.Name, projectName, req, op)
 		}
 
 		resources := map[string][]api.URL{}
@@ -1767,7 +1767,12 @@ func storageVolumePostClusteringMigrate(s *state.State, r *http.Request, srcPool
 			return fmt.Errorf("Failed to connect to destination server %q: %w", newMember.Address, err)
 		}
 
-		dest = dest.UseTarget(newMember.Name).UseProject(srcProjectName)
+		// The volume is created in the requested project, defaulting to the source project.
+		if newProjectName == "" {
+			newProjectName = srcProjectName
+		}
+
+		dest = dest.UseTarget(newMember.Name).UseProject(newProjectName)
 
 		resources := map[string][]api.URL{}
 		resources["storage_volumes"] = []api.URL{*api.NewURL().Path(version.APIVersion, "storage-pools", srcPool.Name(), "volumes", "custom", srcVolumeName)}
