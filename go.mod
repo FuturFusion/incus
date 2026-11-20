@@ -14,7 +14,7 @@ require (
 	github.com/aws/smithy-go v1.28.8
 	github.com/cenkalti/backoff/v7 v7.0.3
 	github.com/checkpoint-restore/go-criu/v8 v8.5.0
-	github.com/cowsql/go-cowsql v1.22.1-0.20261002182733-1e27cbabf99c
+	github.com/cowsql/go-cowsql v1.22.1-0.20261014181424-288c15e22ea5
 	github.com/creack/pty v1.1.24
 	github.com/digitalocean/go-smbios v0.0.0-20180907143718-390a4f403a8e
 	github.com/dustinkirkland/golang-petname v0.0.0-20261016130456-fdd95a3d0543
