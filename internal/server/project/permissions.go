@@ -2140,12 +2140,21 @@ func FilterUsedBy(authorizer auth.Authorizer, r *http.Request, entries []string)
 	// Filter the entries.
 	usedBy := []string{}
 	for _, entry := range entries {
+		var object auth.Object
+
 		entityType, projectName, location, pathArgs, err := cluster.URLToEntityType(entry)
 		if err != nil {
-			continue
+			// Network peers aren't an entity type, they follow their network.
+			networkName, networkProject, ok := networkPeerURL(entry)
+			if !ok {
+				continue
+			}
+
+			entityType = cluster.TypeNetwork
+			projectName = networkProject
+			pathArgs = []string{networkName}
 		}
 
-		var object auth.Object
 		switch entityType {
 		case cluster.TypeImage:
 			object = auth.ObjectImage(projectName, pathArgs[0])
@@ -2153,8 +2162,12 @@ func FilterUsedBy(authorizer auth.Authorizer, r *http.Request, entries []string)
 			object = auth.ObjectInstance(projectName, pathArgs[0])
 		case cluster.TypeNetwork:
 			object = auth.ObjectNetwork(projectName, pathArgs[0])
+		case cluster.TypeNetworkACL:
+			object = auth.ObjectNetworkACL(projectName, pathArgs[0])
 		case cluster.TypeProfile:
 			object = auth.ObjectProfile(projectName, pathArgs[0])
+		case cluster.TypeProject:
+			object = auth.ObjectProject(pathArgs[0])
 		case cluster.TypeStoragePool:
 			object = auth.ObjectStoragePool(pathArgs[0])
 		case cluster.TypeStorageVolume:
@@ -2176,6 +2189,26 @@ func FilterUsedBy(authorizer auth.Authorizer, r *http.Request, entries []string)
 	}
 
 	return usedBy
+}
+
+// networkPeerURL returns the network and project of a network peer URL.
+func networkPeerURL(entry string) (string, string, bool) {
+	u, err := url.Parse(entry)
+	if err != nil {
+		return "", "", false
+	}
+
+	parts := strings.Split(strings.Trim(u.Path, "/"), "/")
+	if len(parts) != 5 || parts[1] != "networks" || parts[3] != "peers" {
+		return "", "", false
+	}
+
+	projectName := u.Query().Get("project")
+	if projectName == "" {
+		projectName = api.ProjectDefaultName
+	}
+
+	return parts[2], projectName, true
 }
 
 // Return true if particular restriction in project is violated.
