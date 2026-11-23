@@ -3627,3 +3627,7 @@ This adds a new image property, `volume.size_hint`, which sets the size of the c
 ## `network_allocations_project`
 
 Adds the `project` field to the network allocations API response, holding the project of the network.
+
+## `nic_bridged_vlan_ingress`
+
+This adds a new `vlan.ingress` option to `bridged` NICs, to `physical` NICs and to `physical` networks whose parent is a bridge, used for private VLANs where the return traffic for the untagged VLAN comes in on a separate ingress VLAN.
